@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -236,4 +237,21 @@ func DefaultOffChainConfigParamsFromNodes(nodes []client.Chainlink) (contracts.O
 		F:                                       1,
 		OnchainConfig:                           []byte{},
 	}, nkb, nil
+}
+
+// WriteNetworkConfigMap write a network config file for gauntlet testing
+func WriteNetworkConfigMap(file string, config map[string]string) error {
+	f, err := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	for k, v := range config {
+		fmt.Printf("key[%s] value[%s]\n", k, v)
+		_, err = f.WriteString(fmt.Sprintf("\n%s=%s", k, v))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

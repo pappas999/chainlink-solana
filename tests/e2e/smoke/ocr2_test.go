@@ -1,6 +1,8 @@
 package smoke
 
 import (
+	"math/big"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/rs/zerolog/log"
@@ -10,10 +12,9 @@ import (
 	"github.com/smartcontractkit/integrations-framework/actions"
 	"github.com/smartcontractkit/integrations-framework/client"
 	"github.com/smartcontractkit/integrations-framework/contracts"
-	"math/big"
 )
 
-var _ = Describe("Solana OCRv2", func() {
+var _ = Describe("Solana OCRv2 @ocr", func() {
 	var (
 		e              *environment.Environment
 		chainlinkNodes []client.Chainlink

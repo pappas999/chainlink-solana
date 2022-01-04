@@ -27,3 +27,10 @@ bin
 # Gauntlet artifacts
 gauntlet/packages/gauntlet-solana-contracts/artifacts/programId
 gauntlet/packages/gauntlet-solana-contracts/artifacts/bin
+
+# test logs and stuff
+test-ledger
+gauntlet/logs/logs
+gauntlet/networks/.env.*
+gauntlet/yarn-error.log
+tests/e2e/smoke/logs/logs
