@@ -134,13 +134,12 @@ func CreateOCR2Jobs(
 	nkb []NodeKeysBundle,
 	mockserver *client.MockserverClient,
 	ocr2 contracts.OCRv2,
-	validator contracts.OCRv2DeviationFlaggingValidator) error {
+	store contracts.OCRv2Store) error {
 	relayConfig := map[string]string{
-		"nodeEndpointHTTP":   "http://sol:8899",
-		"nodeEndpointWS":     "ws://sol:8900",
-		"stateID":            ocr2.Address(),
-		"transmissionsID":    ocr2.TransmissionsAddr(),
-		"validatorProgramID": validator.ProgramAddress(),
+		"nodeEndpointHTTP": "http://sol:8899",
+		"ocr2ProgramID":    ocr2.ProgramAddress(),
+		"transmissionsID":  store.TransmissionsAddress(),
+		"storeProgramID":   store.ProgramAddress(),
 	}
 	bootstrapPeers := []client.P2PData{
 		{
@@ -175,7 +174,7 @@ func CreateOCR2Jobs(
 		}
 		jobSpec := &client.OCR2TaskJobSpec{
 			Name:                  fmt.Sprintf("sol-OCRv2-%d-%s", nIdx, uuid.NewV4().String()),
-			ContractID:            ocr2.ProgramAddress(),
+			ContractID:            ocr2.Address(),
 			Relay:                 ChainName,
 			RelayConfig:           relayConfig,
 			P2PPeerID:             nkb[nIdx].PeerID,

@@ -1,9 +1,7 @@
 package solana
 
 import (
-	"context"
 	"errors"
-	"time"
 
 	"github.com/gagliardetto/solana-go"
 	uuid "github.com/satori/go.uuid"
@@ -35,27 +33,24 @@ type OCR2Spec struct {
 
 	// network data
 	NodeEndpointHTTP string
-	NodeEndpointWS   string
 
-	// on-chain program + 2x state accounts (state + transmissions) + validator program
-	ProgramID          solana.PublicKey
-	StateID            solana.PublicKey
-	ValidatorProgramID solana.PublicKey
-	TransmissionsID    solana.PublicKey
+	// on-chain program + 2x state accounts (state + transmissions) + store program
+	ProgramID       solana.PublicKey
+	StateID         solana.PublicKey
+	StoreProgramID  solana.PublicKey
+	TransmissionsID solana.PublicKey
 
 	TransmissionSigner TransmissionSigner
 }
 
 type Relayer struct {
-	lggr        Logger
-	connections Connections
+	lggr Logger
 }
 
 // Note: constructed in core
 func NewRelayer(lggr Logger) *Relayer {
 	return &Relayer{
-		lggr:        lggr,
-		connections: Connections{},
+		lggr: lggr,
 	}
 }
 
@@ -66,8 +61,7 @@ func (r *Relayer) Start() error {
 
 // Close will close all open subservices
 func (r *Relayer) Close() error {
-	// close all open network client connections
-	return r.connections.Close()
+	return nil
 }
 
 func (r *Relayer) Ready() error {
@@ -77,7 +71,6 @@ func (r *Relayer) Ready() error {
 
 // Healthy only if all subservices are healthy
 func (r *Relayer) Healthy() error {
-	// TODO: are all open WS connections healthy?
 	return nil
 }
 
@@ -93,14 +86,8 @@ func (r *Relayer) NewOCR2Provider(externalJobID uuid.UUID, s interface{}) (relay
 		ProgramID: spec.ProgramID,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-	// establish network connection RPC + WS (reuses existing WS client if available)
-	client, err := r.connections.NewConnectedClient(ctx, spec.NodeEndpointHTTP, spec.NodeEndpointWS)
-	if err != nil {
-		return provider, err
-	}
-
+	// establish network connection RPC
+	client := NewClient(spec.NodeEndpointHTTP)
 	contractTracker := NewTracker(spec, client, spec.TransmissionSigner, r.lggr)
 
 	if spec.IsBootstrap {
@@ -133,7 +120,6 @@ func (p ocr2Provider) Start() error {
 
 func (p ocr2Provider) Close() error {
 	// TODO: close all subservices
-	// TODO: close client WS connection if not used/shared anymore
 	return nil
 }
 

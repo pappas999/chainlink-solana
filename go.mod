@@ -3,12 +3,12 @@ module github.com/smartcontractkit/chainlink-solana
 go 1.17
 
 require (
-	github.com/gagliardetto/binary v0.5.0
-	github.com/gagliardetto/solana-go v1.0.2
+	github.com/gagliardetto/binary v0.5.2
+	github.com/gagliardetto/solana-go v1.0.4
 	github.com/smartcontractkit/chainlink v1.0.1-0.20211209223503-68928efa429a
 	github.com/smartcontractkit/chainlink-relay/ops v0.0.0-20211215192527-583f627029d9
 	github.com/smartcontractkit/helmenv v1.0.20
-	github.com/smartcontractkit/integrations-framework v0.10.18
+	github.com/smartcontractkit/integrations-framework v1.0.24
 	github.com/smartcontractkit/libocr v0.0.0-20211210213233-5443fb9db7f7
 	github.com/stretchr/testify v1.7.0
 )
@@ -22,6 +22,7 @@ require (
 	github.com/gagliardetto/treeout v0.1.4
 	github.com/golang/protobuf v1.5.2
 	github.com/linkedin/goavro v2.1.0+incompatible
+	github.com/mr-tron/base58 v1.2.0
 	github.com/onsi/ginkgo/v2 v2.0.0-rc2
 	github.com/onsi/gomega v1.17.0
 	github.com/pkg/errors v0.9.1
@@ -154,7 +155,6 @@ require (
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mostynb/zstdpool-freelist v0.0.0-20201229113212-927304c0c3b1 // indirect
-	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect

@@ -10,8 +10,6 @@ import { getRDD } from '../../../lib/rdd'
 type Input = {
   minAnswer: number | string
   maxAnswer: number | string
-  decimals: number | string
-  description: string
 }
 export default class Initialize extends SolanaCommand {
   static id = 'ocr2:initialize'
@@ -29,14 +27,13 @@ export default class Initialize extends SolanaCommand {
     return {
       maxAnswer: aggregator.maxSubmissionValue,
       minAnswer: aggregator.minSubmissionValue,
-      decimals: aggregator.decimals,
-      description: aggregator.name,
     }
   }
 
   constructor(flags, args) {
     super(flags, args)
 
+    this.requireFlag('transmissions', 'Provide a --transmissions flag with a valid address')
     this.requireFlag('requesterAccessController', 'Provide a --requesterAccessController flag with a valid address')
     this.requireFlag('billingAccessController', 'Provide a --requesterAccessController flag with a valid address')
   }
@@ -48,29 +45,27 @@ export default class Initialize extends SolanaCommand {
 
     // STATE ACCOUNTS
     const state = Keypair.generate()
-    const transmissions = Keypair.generate()
     const owner = this.wallet.payer
     const input = this.makeInput(this.flags.input)
 
+    const transmissions = new PublicKey(this.flags.transmissions)
     const linkPublicKey = new PublicKey(this.flags.link)
     const requesterAccessController = new PublicKey(this.flags.requesterAccessController)
     const billingAccessController = new PublicKey(this.flags.billingAccessController)
 
     // ARGS
-    const [vaultAuthority, nonce] = await PublicKey.findProgramAddress(
+    const [vaultAuthority, vaultNonce] = await PublicKey.findProgramAddress(
       [Buffer.from(utils.bytes.utf8.encode('vault')), state.publicKey.toBuffer()],
       program.programId,
     )
 
-    const [validatorAuthority] = await PublicKey.findProgramAddress(
-      [Buffer.from(utils.bytes.utf8.encode('validator')), state.publicKey.toBuffer()],
+    const [storeAuthority, _storeNonce] = await PublicKey.findProgramAddress(
+      [Buffer.from(utils.bytes.utf8.encode('store')), state.publicKey.toBuffer()],
       program.programId,
     )
 
     const minAnswer = new BN(input.minAnswer)
     const maxAnswer = new BN(input.maxAnswer)
-    const decimals = new BN(input.decimals)
-    const description = input.description || ''
 
     const tokenVault = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -82,7 +77,7 @@ export default class Initialize extends SolanaCommand {
 
     const accounts = {
       state: state.publicKey,
-      transmissions: transmissions.publicKey,
+      transmissions: transmissions,
       payer: this.provider.wallet.publicKey,
       owner: owner.publicKey,
       tokenMint: linkPublicKey,
@@ -100,27 +95,22 @@ export default class Initialize extends SolanaCommand {
     console.log(`
       - Min Answer: ${minAnswer.toString()}
       - Max Answer: ${maxAnswer.toString()}
-      - Decimals: ${decimals}
-      - Description: ${description}
-      - Nonce: ${nonce}
+      - Vault Nonce: ${vaultNonce}
     `)
 
     logger.log('Feed information:', input)
     await prompt('Continue initializing OCR 2 feed?')
 
-    const txHash = await program.rpc.initialize(nonce, minAnswer, maxAnswer, decimals, description, {
+    const txHash = await program.rpc.initialize(vaultNonce, minAnswer, maxAnswer, {
       accounts,
-      signers: [owner, state, transmissions],
-      instructions: [
-        await program.account.state.createInstruction(state),
-        await program.account.transmissions.createInstruction(transmissions),
-      ],
+      signers: [owner, state],
+      instructions: [await program.account.state.createInstruction(state)],
     })
 
     console.log(`
       STATE ACCOUNTS:
         - State: ${state.publicKey}
-        - Transmissions: ${transmissions.publicKey}
+        - Transmissions: ${transmissions}
         - Payer: ${this.provider.wallet.publicKey}
         - Owner: ${owner.publicKey}
     `)
@@ -128,14 +118,14 @@ export default class Initialize extends SolanaCommand {
     return {
       data: {
         state: state.publicKey.toString(),
-        transmissions: transmissions.publicKey.toString(),
-        validatorAuthority: validatorAuthority.toString(),
+        transmissions: transmissions.toString(),
+        storeAuthority: storeAuthority.toString(),
       },
       responses: [
         {
           tx: this.wrapResponse(txHash, address, {
             state: state.publicKey.toString(),
-            transmissions: transmissions.publicKey.toString(),
+            transmissions: transmissions.toString(),
           }),
           contract: state.publicKey.toString(),
         },

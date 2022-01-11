@@ -7,7 +7,7 @@
       "type": {
         "defined": "usize"
       },
-      "value": "32"
+      "value": "64"
     }
   ],
   "instructions": [
@@ -116,7 +116,7 @@
             "type": {
               "array": [
                 "publicKey",
-                32
+                64
               ]
             }
           },
