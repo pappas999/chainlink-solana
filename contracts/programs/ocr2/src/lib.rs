@@ -63,6 +63,12 @@ pub mod ocr2 {
     }
 
     #[access_control(owner(&ctx.accounts.state, &ctx.accounts.authority))]
+    pub fn close(ctx: Context<Close>) -> ProgramResult {
+        // NOTE: Close is handled by anchor on exit due to the `close` attribute
+        Ok(())
+    }
+
+    #[access_control(owner(&ctx.accounts.state, &ctx.accounts.authority))]
     pub fn transfer_ownership(
         ctx: Context<TransferOwnership>,
         proposed_owner: Pubkey,
@@ -93,6 +99,7 @@ pub mod ocr2 {
         // disallow begin if we already started writing
         require!(config.pending_offchain_config.version == 0, InvalidInput);
         require!(config.pending_offchain_config.is_empty(), InvalidInput);
+        require!(offchain_config_version != 0, InvalidInput);
 
         config.pending_offchain_config.version = offchain_config_version;
         Ok(())
