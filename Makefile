@@ -1,7 +1,7 @@
 BIN_DIR = bin
 export GOPATH ?= $(shell go env GOPATH)
 export GO111MODULE ?= on
-export PROJECT_SERUM_IMAGE ?= projectserum/build:v0.19.0
+export PROJECT_SERUM_IMAGE ?= projectserum/build:v0.20.0
 
 install:
 	go mod download
@@ -22,6 +22,11 @@ start_test_env:
 
 start_pulumi_env:
 	echo "TODO"
+
+:PHONY
+build_js:
+	cd gauntlet && yarn install --frozen-lockfile
+	cd gauntlet && yarn bundle
 
 build:
 	cd gauntlet && yarn install --frozen-lockfile

@@ -7,12 +7,18 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/rs/zerolog/log"
-	relayUtils "github.com/smartcontractkit/chainlink-relay/ops/utils"
+
+	// "github.com/gagliardetto/solana-go"
+	// utils2 "github.com/smartcontractkit/chainlink-solana/tests/e2e/utils"
+
+	// relayUtils "github.com/smartcontractkit/chainlink-relay/ops/utils"
 	"github.com/smartcontractkit/chainlink-solana/tests/e2e/solclient"
+	g "github.com/smartcontractkit/chainlink-solana/tests/e2e/utils"
 	"github.com/smartcontractkit/helmenv/environment"
 	"github.com/smartcontractkit/helmenv/tools"
 	"github.com/smartcontractkit/integrations-framework/actions"
@@ -20,7 +26,7 @@ import (
 )
 
 type Deployer struct {
-	gauntlet relayUtils.Gauntlet
+	gauntlet g.Gauntlet
 	network  string
 	Account  map[int]string
 }
@@ -31,7 +37,8 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 		chainlinkNodes []client.Chainlink
 		// cd             contracts.ContractDeployer
 		gd       Deployer
-		gauntlet relayUtils.Gauntlet
+		gauntlet g.Gauntlet
+		// lt             contracts.LinkToken
 		// validator      contracts.OCRv2DeviationFlaggingValidator
 		// billingAC      contracts.OCRv2AccessController
 		// requesterAC    contracts.OCRv2AccessController
@@ -42,6 +49,11 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 		nets       *client.Networks
 		err        error
 	)
+
+	solanaCommandError := g.ExecError{
+		WhatIsIt:     "Solana Command execution error",
+		HowToRespond: " ",
+	}
 
 	BeforeEach(func() {
 		By("Deploying the environment", func() {
@@ -66,9 +78,9 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			// nets.Default.GetClients()[0]
 			// nets.Default.
-			mockserver, err = client.NewMockServerClientFromEnv(e)
+			mockserver, err = client.ConnectMockServer(e)
 			Expect(err).ShouldNot(HaveOccurred())
-			chainlinkNodes, err = client.NewChainlinkClients(e)
+			chainlinkNodes, err = client.ConnectChainlinkNodes(e)
 			Expect(err).ShouldNot(HaveOccurred())
 			_, nkb, err = DefaultOffChainConfigParamsFromNodes(chainlinkNodes)
 			// ocConfig, nkb, err = DefaultOffChainConfigParamsFromNodes(chainlinkNodes)
@@ -77,8 +89,8 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 		By("Setup Gauntlet", func() {
 			_, err := exec.LookPath("yarn")
 			Expect(err).ShouldNot(HaveOccurred())
-			exec.Command("").
-				os.Setenv("SKIP_PROMPTS", "true")
+			// exec.Command("").
+			os.Setenv("SKIP_PROMPTS", "true")
 
 			log.Debug().Str("OS", runtime.GOOS).Msg("Runtime OS:")
 			version := "linux"
@@ -92,7 +104,7 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			gauntletBin := filepath.Join(cwd, "../../../gauntlet/bin/gauntlet-") + version
-			gauntlet, err = relayUtils.NewGauntlet(gauntletBin)
+			gauntlet, err = g.NewGauntlet(gauntletBin)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			gd = Deployer{
@@ -105,8 +117,9 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			// cd, err = solclient.NewContractDeployer(nets.Default, e)
 			// Expect(err).ShouldNot(HaveOccurred())
 			// _, err := cd.DeployLinkTokenContract()
-			// lt, err := cd.DeployLinkTokenContract()
+			// lt, err = cd.DeployLinkTokenContract()
 			// Expect(err).ShouldNot(HaveOccurred())
+			// log.Debug().Str("Address", lt.Address()).Msg("Link Token Address")
 			err = FundOracles(nets.Default, nkb, big.NewFloat(5e4))
 			Expect(err).ShouldNot(HaveOccurred())
 			// billingAC, err = cd.DeployOCRv2AccessController()
@@ -160,24 +173,99 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 	Describe("gauntlet commands", func() {
 
 		It("token", func() {
+			solUrls, err := e.Charts.Connections("solana-validator").LocalURLsByPort("http-rpc", environment.HTTP)
+			Expect(err).ShouldNot(HaveOccurred())
 			network := "blarg"
 			networkConfig := map[string]string{
-				"NETWORK":     "local",
-				"NODE_URL":    fmt.Sprintf("'%s'", chainlinkNodes[0].URL()),
-				"PRIVATE_KEY": "[4,198,110,68,205,35,72,68,186,229,85,4,205,206,147,113,153,7,206,234,55,216,227,86,133,186,206,65,6,175,218,9,80,251,248,55,192,181,151,105,15,181,169,175,196,47,24,179,25,173,203,190,160,153,152,66,24,155,233,243,140,153,66,143]",
-				// "CHAIN_ID":    "",
+				"NETWORK":                      "local",
+				"NODE_URL":                     solUrls[0].String(),
+				"PROGRAM_ID_OCR2":              "CF13pnKGJ1WJZeEgVAtFdUi4MMndXm9hneiHs8azUaZt",
+				"PROGRAM_ID_ACCESS_CONTROLLER": "2F5NEkMnCRkmahEAcQfTQcZv1xtGgrWFfjENtTwHLuKg",
+				"PROGRAM_ID_STORE":             "A7Jh2nb1hZHwqEofm4N8SXbKTj82rx7KUfjParQXUyMQ",
+				"PRIVATE_KEY":                  "[82,252,248,116,175,84,117,250,95,209,157,226,79,186,119,203,91,102,11,93,237,3,147,113,49,205,35,71,74,208,225,183,24,204,237,135,197,153,100,220,237,111,190,58,211,186,148,129,219,173,188,168,137,129,84,192,188,250,111,167,151,43,111,109]",
+				"SECRET":                       "[only,unfair,fiction,favorite,sudden,strategy,rotate,announce,rebuild,keep,violin,nuclear]",
 			}
+
 			err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			log.Debug().Msg("Deploying LINK Token...")
-			err = gd.gauntlet.ExecCommand(
-				"token:deploy",
+			// sleep to let the wallet fill
+			log.Debug().Msg("Sleeping to let the wallets fill")
+			time.Sleep(10 * time.Second)
+
+			// log.Debug().Msg("Deploying LINK Token...")
+			// args := []string{
+			// 	"token:deploy",
+			// 	gd.gauntlet.Flag("network", network),
+			// }
+
+			// errHandling := []g.ExecError{
+			// 	solanaCommandError,
+			// }
+			// _, err = gd.gauntlet.ExecCommand(args, errHandling)
+			// // if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
+			// Expect(err).ShouldNot(HaveOccurred())
+
+			// report, err := gd.gauntlet.ReadCommandReport()
+			// Expect(err).ShouldNot(HaveOccurred())
+
+			// linkAddress := report.Responses[0].Contract
+			// networkConfig["LINK"] = linkAddress
+			// err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
+			// Expect(err).ShouldNot(HaveOccurred())
+
+			log.Debug().Msg("Deploying Access Controller...")
+			acArgs := []string{
+				"access_controller:initialize",
 				gd.gauntlet.Flag("network", network),
-			)
+			}
+
+			acErrHandling := []g.ExecError{
+				solanaCommandError,
+			}
+			_, err = gd.gauntlet.ExecCommand(acArgs, acErrHandling)
+			// if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
 			Expect(err).ShouldNot(HaveOccurred())
 
-			_, err = gd.gauntlet.ReadCommandReport()
+			report, err := gd.gauntlet.ReadCommandReport()
+			Expect(err).ShouldNot(HaveOccurred())
+
+			requesterAccessController := report.Responses[0].Contract
+			networkConfig["REQUESTER_ACCESS_CONTROLLER"] = requesterAccessController
+			// networkConfig["BILLING_ACCESS_CONTROLLER"] = requesterAccessController
+			err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			log.Debug().Msg("Deploying Store...")
+			storeArgs := []string{
+				"store:initialize",
+				gd.gauntlet.Flag("network", network),
+			}
+
+			storeErrHandling := []g.ExecError{
+				solanaCommandError,
+			}
+			_, err = gd.gauntlet.ExecCommand(storeArgs, storeErrHandling)
+			// if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
+			Expect(err).ShouldNot(HaveOccurred())
+
+			report, err = gd.gauntlet.ReadCommandReport()
+			Expect(err).ShouldNot(HaveOccurred())
+
+			log.Debug().Msg("Deploying OCR2...")
+			ocr2Args := []string{
+				"ocr2:initialize",
+				gd.gauntlet.Flag("network", network),
+			}
+
+			ocr2ErrHandling := []g.ExecError{
+				solanaCommandError,
+			}
+			_, err = gd.gauntlet.ExecCommand(ocr2Args, ocr2ErrHandling)
+			// if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
+			Expect(err).ShouldNot(HaveOccurred())
+
+			report, err = gd.gauntlet.ReadCommandReport()
 			Expect(err).ShouldNot(HaveOccurred())
 			// token:deploy
 
