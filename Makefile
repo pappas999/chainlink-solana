@@ -25,12 +25,10 @@ start_pulumi_env:
 
 :PHONY
 build_js:
-	cd gauntlet && yarn install --frozen-lockfile
-	cd gauntlet && yarn bundle
+	cd gauntlet && yarn install --frozen-lockfile && yarn bundle
 
 build:
-	cd gauntlet && yarn install --frozen-lockfile
-	cd gauntlet && yarn bundle
+	cd gauntlet && yarn install --frozen-lockfile && yarn bundle
 	docker run --rm -it -v $(shell pwd):/workdir ${PROJECT_SERUM_IMAGE} /bin/bash ./scripts/anchor-build.sh
 
 test_smoke:

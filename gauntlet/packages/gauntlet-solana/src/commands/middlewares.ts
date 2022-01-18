@@ -1,7 +1,7 @@
 import { Middleware, Next } from '@chainlink/gauntlet-core'
 import { assertions } from '@chainlink/gauntlet-core/dist/utils'
 import { Provider } from '@project-serum/anchor'
-import { ConfirmOptions, Connection, ConnectionConfig, Keypair } from '@solana/web3.js'
+import { Connection, ConnectionConfig, Keypair } from '@solana/web3.js'
 import SolanaCommand from './internal/solana'
 const { Wallet } = require('@project-serum/anchor') // module exported dynamically from anchor
 
@@ -17,9 +17,11 @@ export const withProvider: Middleware = (c: SolanaCommand, next: Next) => {
   )
 
   let connectionConfig: ConnectionConfig = {}
+  console.info("before")
   if (process.env.CONFIRM_TX_TIMEOUT_SECONDS) {
     connectionConfig.confirmTransactionInitialTimeout = parseInt(process.env.CONFIRM_TX_TIMEOUT_SECONDS) * 1000
   }
+  console.info("after")
   c.provider = new Provider(new Connection(nodeURL, connectionConfig), c.wallet, {})
   return next()
 }

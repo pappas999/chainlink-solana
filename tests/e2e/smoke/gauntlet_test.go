@@ -1,8 +1,6 @@
 package smoke
 
 import (
-	"encoding/json"
-	"fmt"
 	"math/big"
 	"os"
 	"os/exec"
@@ -42,9 +40,8 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 		err      error
 	)
 
-	solanaCommandError := g.ExecError{
-		WhatIsIt:     "Solana Command execution error",
-		HowToRespond: " ",
+	solanaCommandError := []string{
+		"Solana Command execution error",
 	}
 
 	BeforeEach(func() {
@@ -123,99 +120,127 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 				gd.gauntlet.Flag("network", network),
 			}
 
-			errHandling := []g.ExecError{
-				solanaCommandError,
-			}
-			report, err := gd.gauntlet.ExecuteAndRead(args, errHandling)
+			report, err := gd.gauntlet.ExecuteAndRead(args, solanaCommandError)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			linkAddress := report.Responses[0].Contract
 			networkConfig["LINK"] = linkAddress
+			// err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
+			// Expect(err).ShouldNot(HaveOccurred())
 
 			// Create Billing and Requester Access Controllers
-			log.Debug().Msg("Deploying Access Controller for Requester...")
+			log.Debug().Msg("Read the state of the token.")
 			acArgs := []string{
-				"access_controller:initialize",
+				"token:read_state",
 				gd.gauntlet.Flag("network", network),
-				linkAddress,
+				// linkAddress,
 			}
 
-			acErrHandling := []g.ExecError{
-				solanaCommandError,
-			}
-			report, err = gd.gauntlet.ExecuteAndRead(acArgs, acErrHandling)
+			report, err = gd.gauntlet.ExecuteAndRead(acArgs, solanaCommandError)
 			Expect(err).ShouldNot(HaveOccurred())
-			requesterAccessController := report.Responses[0].Contract
-
-			log.Debug().Msg("Deploying Access Controller for Billing...")
-			report, err = gd.gauntlet.ExecuteAndRead(acArgs, acErrHandling)
-			Expect(err).ShouldNot(HaveOccurred())
-			billingAccessController := report.Responses[0].Contract
-
-			networkConfig["REQUESTER_ACCESS_CONTROLLER"] = requesterAccessController
-			networkConfig["BILLING_ACCESS_CONTROLLER"] = billingAccessController
-			err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			// Create Store
-			log.Debug().Msg("Deploying Store...")
-			storeArgs := []string{
-				"store:initialize",
-				gd.gauntlet.Flag("network", network),
-			}
-
-			storeErrHandling := []g.ExecError{
-				solanaCommandError,
-			}
-			report, err = gd.gauntlet.ExecuteAndRead(storeArgs, storeErrHandling)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			storeAccount := report.Responses[0].Contract
-
-			// Create store feed
-			input := map[string]interface{}{
-				"store":       storeAccount,
-				"granularity": 30,
-				"liveLength":  1024,
-				"decimals":    8,
-				"description": "Test LINK/USD",
-			}
-			jsonInput, err := json.Marshal(input)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			storeCreateFeedArgs := []string{
-				"store:create_feed",
-				gd.gauntlet.Flag("network", network),
-				gd.gauntlet.Flag("state", storeAccount),
-				gd.gauntlet.Flag("input", string(jsonInput)),
-			}
-			report, err = gd.gauntlet.ExecuteAndRead(storeCreateFeedArgs, storeErrHandling)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			// log.Debug().Msg("Deploying OCR2...")
-			// ocr2Args := []string{
-			// 	"ocr2:initialize",
-			// 	gd.gauntlet.Flag("network", network),
-			// }
-
-			// ocr2ErrHandling := []g.ExecError{
-			// 	solanaCommandError,
-			// }
-			// _, err = gd.gauntlet.ExecCommand(ocr2Args, ocr2ErrHandling)
-			// // if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
-			// Expect(err).ShouldNot(HaveOccurred())
-
-			// report, err = gd.gauntlet.ReadCommandReport()
-			// Expect(err).ShouldNot(HaveOccurred())
-
-			// token:deploy
 
 			// token:read_state
 
 			// token:transfer
 		})
+
 		// It("access_controller", func() {
-		// 	Expect("abc").To(Equal("abc"))
+		// 	network := "blarg"
+		// 	networkConfig, err := GetDefaultGauntletConfig(network, e)
+		// 	Expect(err).ShouldNot(HaveOccurred())
+
+		// 	// Deploy Link
+		// 	log.Debug().Msg("Deploying LINK Token...")
+		// 	args := []string{
+		// 		"token:deploy",
+		// 		gd.gauntlet.Flag("network", network),
+		// 	}
+
+		// 	errHandling := []g.ExecError{
+		// 		solanaCommandError,
+		// 	}
+		// 	report, err := gd.gauntlet.ExecuteAndRead(args, errHandling)
+		// 	Expect(err).ShouldNot(HaveOccurred())
+
+		// 	linkAddress := report.Responses[0].Contract
+		// 	networkConfig["LINK"] = linkAddress
+
+		// 	// Create Billing and Requester Access Controllers
+		// 	log.Debug().Msg("Deploying Access Controller for Requester...")
+		// 	acArgs := []string{
+		// 		"access_controller:initialize",
+		// 		gd.gauntlet.Flag("network", network),
+		// 		linkAddress,
+		// 	}
+
+		// 	acErrHandling := []g.ExecError{
+		// 		solanaCommandError,
+		// 	}
+		// 	report, err = gd.gauntlet.ExecuteAndRead(acArgs, acErrHandling)
+		// 	Expect(err).ShouldNot(HaveOccurred())
+		// 	requesterAccessController := report.Responses[0].Contract
+
+		// 	log.Debug().Msg("Deploying Access Controller for Billing...")
+		// 	report, err = gd.gauntlet.ExecuteAndRead(acArgs, acErrHandling)
+		// 	Expect(err).ShouldNot(HaveOccurred())
+		// 	billingAccessController := report.Responses[0].Contract
+
+		// 	networkConfig["REQUESTER_ACCESS_CONTROLLER"] = requesterAccessController
+		// 	networkConfig["BILLING_ACCESS_CONTROLLER"] = billingAccessController
+		// 	err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
+		// 	Expect(err).ShouldNot(HaveOccurred())
+
+		// 	// Create Store
+		// 	log.Debug().Msg("Deploying Store...")
+		// 	storeArgs := []string{
+		// 		"store:initialize",
+		// 		gd.gauntlet.Flag("network", network),
+		// 	}
+
+		// 	storeErrHandling := []g.ExecError{
+		// 		solanaCommandError,
+		// 	}
+		// 	report, err = gd.gauntlet.ExecuteAndRead(storeArgs, storeErrHandling)
+		// 	Expect(err).ShouldNot(HaveOccurred())
+
+		// 	storeAccount := report.Responses[0].Contract
+
+		// 	// Create store feed
+		// 	input := map[string]interface{}{
+		// 		"store":       storeAccount,
+		// 		"granularity": 30,
+		// 		"liveLength":  1024,
+		// 		"decimals":    8,
+		// 		"description": "Test LINK/USD",
+		// 	}
+		// 	jsonInput, err := json.Marshal(input)
+		// 	Expect(err).ShouldNot(HaveOccurred())
+
+		// 	storeCreateFeedArgs := []string{
+		// 		"store:create_feed",
+		// 		gd.gauntlet.Flag("network", network),
+		// 		gd.gauntlet.Flag("state", storeAccount),
+		// 		gd.gauntlet.Flag("input", string(jsonInput)),
+		// 	}
+		// 	report, err = gd.gauntlet.ExecuteAndRead(storeCreateFeedArgs, storeErrHandling)
+		// 	Expect(err).ShouldNot(HaveOccurred())
+
+		// 	// log.Debug().Msg("Deploying OCR2...")
+		// 	// ocr2Args := []string{
+		// 	// 	"ocr2:initialize",
+		// 	// 	gd.gauntlet.Flag("network", network),
+		// 	// }
+
+		// 	// ocr2ErrHandling := []g.ExecError{
+		// 	// 	solanaCommandError,
+		// 	// }
+		// 	// _, err = gd.gauntlet.ExecCommand(ocr2Args, ocr2ErrHandling)
+		// 	// // if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
+		// 	// Expect(err).ShouldNot(HaveOccurred())
+
+		// 	// report, err = gd.gauntlet.ReadCommandReport()
+		// 	// Expect(err).ShouldNot(HaveOccurred())
+
 		// 	// access_controller:initialize
 
 		// 	// access_controller:add_access

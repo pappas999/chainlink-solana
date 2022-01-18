@@ -18,11 +18,6 @@ type Gauntlet struct {
 	exec string
 }
 
-type ExecError struct {
-	WhatIsIt     string
-	HowToRespond string
-}
-
 type FlowReport []struct {
 	Name string `json:"name"`
 	Txs  []struct {
@@ -61,20 +56,21 @@ func (g Gauntlet) Flag(flag string, value string) string {
 	return fmt.Sprintf("--%s=%s", flag, value)
 }
 
-func (g Gauntlet) ExecCommand(args []string, errHandling []ExecError) (string, error) {
+func (g Gauntlet) ExecCommand(args []string, errHandling []string) (string, error) {
 	output := ""
 	cmd := exec.Command(g.exec, args...)
 	stdout, _ := cmd.StdoutPipe()
-	// errPipe, _ := cmd.StderrPipe()
 	if err := cmd.Start(); err != nil {
 		return output, err
 	}
 	stdin, _ := cmd.StdinPipe()
-	// go func() {
 	reader := bufio.NewReader(stdout)
 	line, err := reader.ReadString('\n')
+	log.Debug().Str("Output", err.Error()).Msg("Read Line")
+	log.Debug().Str("Error", err.Error()).Msg("Read error")
 	for err == nil {
 		fmt.Print(line)
+		log.Debug().Str("Line", line).Msg("Gauntlet")
 		output += line + "\n"
 		line, err = reader.ReadString('\n')
 		rerr := respondToErrors(errHandling, line, stdin)
@@ -82,7 +78,6 @@ func (g Gauntlet) ExecCommand(args []string, errHandling []ExecError) (string, e
 			return output, rerr
 		}
 	}
-	// }()
 
 	if strings.Compare("EOF", err.Error()) > 0 {
 		return output, err
@@ -90,9 +85,9 @@ func (g Gauntlet) ExecCommand(args []string, errHandling []ExecError) (string, e
 	return output, nil
 }
 
-func respondToErrors(errHandling []ExecError, line string, stdin io.WriteCloser) error {
+func respondToErrors(errHandling []string, line string, stdin io.WriteCloser) error {
 	for _, e := range errHandling {
-		if strings.Contains(line, e.WhatIsIt) {
+		if strings.Contains(line, e) {
 			log.Debug().Str("Error", line).Msg("Gauntlet Error Found")
 			// _, err := stdin.Write([]byte(fmt.Sprintln(e.HowToRespond)))
 			// if err != nil {
@@ -117,7 +112,7 @@ func (g Gauntlet) ReadCommandReport() (GReport, error) {
 	return report, nil
 }
 
-func (g Gauntlet) ExecuteAndRead(args []string, errHandling []ExecError) (GReport, error) {
+func (g Gauntlet) ExecuteAndRead(args []string, errHandling []string) (GReport, error) {
 	_, err := g.ExecCommand(args, errHandling)
 	if err != nil {
 		return GReport{}, err
