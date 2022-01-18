@@ -91,6 +91,8 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			// exec.Command("").
 			os.Setenv("SKIP_PROMPTS", "true")
+			// make the gauntlet solana calls timeout longer for tests, it normally defaults to 60 seconds
+			os.Setenv("CONFIRM_TX_TIMEOUT_SECONDS", "120")
 
 			log.Debug().Str("OS", runtime.GOOS).Msg("Runtime OS:")
 			version := "linux"
@@ -193,80 +195,81 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			log.Debug().Msg("Sleeping to let the wallets fill")
 			time.Sleep(10 * time.Second)
 
-			// log.Debug().Msg("Deploying LINK Token...")
-			// args := []string{
-			// 	"token:deploy",
-			// 	gd.gauntlet.Flag("network", network),
-			// }
-
-			// errHandling := []g.ExecError{
-			// 	solanaCommandError,
-			// }
-			// _, err = gd.gauntlet.ExecCommand(args, errHandling)
-			// // if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
-			// Expect(err).ShouldNot(HaveOccurred())
-
-			// report, err := gd.gauntlet.ReadCommandReport()
-			// Expect(err).ShouldNot(HaveOccurred())
-
-			// linkAddress := report.Responses[0].Contract
-			// networkConfig["LINK"] = linkAddress
-			// err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
-			// Expect(err).ShouldNot(HaveOccurred())
-
-			log.Debug().Msg("Deploying Access Controller...")
-			acArgs := []string{
-				"access_controller:initialize",
+			log.Debug().Msg("Deploying LINK Token...")
+			args := []string{
+				"token:deploy",
 				gd.gauntlet.Flag("network", network),
 			}
 
-			acErrHandling := []g.ExecError{
+			errHandling := []g.ExecError{
 				solanaCommandError,
 			}
-			_, err = gd.gauntlet.ExecCommand(acArgs, acErrHandling)
+			_, err = gd.gauntlet.ExecCommand(args, errHandling)
 			// if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
 			Expect(err).ShouldNot(HaveOccurred())
 
 			report, err := gd.gauntlet.ReadCommandReport()
 			Expect(err).ShouldNot(HaveOccurred())
 
-			requesterAccessController := report.Responses[0].Contract
-			networkConfig["REQUESTER_ACCESS_CONTROLLER"] = requesterAccessController
-			// networkConfig["BILLING_ACCESS_CONTROLLER"] = requesterAccessController
+			linkAddress := report.Responses[0].Contract
+			networkConfig["LINK"] = linkAddress
 			err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			log.Debug().Msg("Deploying Store...")
-			storeArgs := []string{
-				"store:initialize",
-				gd.gauntlet.Flag("network", network),
-			}
+			// log.Debug().Msg("Deploying Access Controller...")
+			// acArgs := []string{
+			// 	"access_controller:initialize",
+			// 	gd.gauntlet.Flag("network", network),
+			// }
 
-			storeErrHandling := []g.ExecError{
-				solanaCommandError,
-			}
-			_, err = gd.gauntlet.ExecCommand(storeArgs, storeErrHandling)
-			// if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
-			Expect(err).ShouldNot(HaveOccurred())
+			// acErrHandling := []g.ExecError{
+			// 	solanaCommandError,
+			// }
+			// _, err = gd.gauntlet.ExecCommand(acArgs, acErrHandling)
+			// // if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
+			// Expect(err).ShouldNot(HaveOccurred())
 
-			report, err = gd.gauntlet.ReadCommandReport()
-			Expect(err).ShouldNot(HaveOccurred())
+			// report, err := gd.gauntlet.ReadCommandReport()
+			// Expect(err).ShouldNot(HaveOccurred())
 
-			log.Debug().Msg("Deploying OCR2...")
-			ocr2Args := []string{
-				"ocr2:initialize",
-				gd.gauntlet.Flag("network", network),
-			}
+			// requesterAccessController := report.Responses[0].Contract
+			// networkConfig["REQUESTER_ACCESS_CONTROLLER"] = requesterAccessController
+			// // networkConfig["BILLING_ACCESS_CONTROLLER"] = requesterAccessController
+			// err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
+			// Expect(err).ShouldNot(HaveOccurred())
 
-			ocr2ErrHandling := []g.ExecError{
-				solanaCommandError,
-			}
-			_, err = gd.gauntlet.ExecCommand(ocr2Args, ocr2ErrHandling)
-			// if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
-			Expect(err).ShouldNot(HaveOccurred())
+			// log.Debug().Msg("Deploying Store...")
+			// storeArgs := []string{
+			// 	"store:initialize",
+			// 	gd.gauntlet.Flag("network", network),
+			// }
 
-			report, err = gd.gauntlet.ReadCommandReport()
-			Expect(err).ShouldNot(HaveOccurred())
+			// storeErrHandling := []g.ExecError{
+			// 	solanaCommandError,
+			// }
+			// _, err = gd.gauntlet.ExecCommand(storeArgs, storeErrHandling)
+			// // if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
+			// Expect(err).ShouldNot(HaveOccurred())
+
+			// report, err = gd.gauntlet.ReadCommandReport()
+			// Expect(err).ShouldNot(HaveOccurred())
+
+			// log.Debug().Msg("Deploying OCR2...")
+			// ocr2Args := []string{
+			// 	"ocr2:initialize",
+			// 	gd.gauntlet.Flag("network", network),
+			// }
+
+			// ocr2ErrHandling := []g.ExecError{
+			// 	solanaCommandError,
+			// }
+			// _, err = gd.gauntlet.ExecCommand(ocr2Args, ocr2ErrHandling)
+			// // if we got an error we can check to see if it just didn't finish in 60 seconds by parsing the output or error for the tx signature
+			// Expect(err).ShouldNot(HaveOccurred())
+
+			// report, err = gd.gauntlet.ReadCommandReport()
+			// Expect(err).ShouldNot(HaveOccurred())
+
 			// token:deploy
 
 			// token:read_state

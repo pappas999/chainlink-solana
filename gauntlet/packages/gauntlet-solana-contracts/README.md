@@ -114,3 +114,9 @@ yarn gauntlet ocr2:transmit --network=local --state=<state_account_public_key> -
 The account public keys can be found inside the `/flow-report.json` file
 
 Make sure to increment the round after every transmission
+
+### Environment variables
+
+SKIP_PROMPTS When set it will skip any prompts that would normally come up when making gauntlet calls. Useful for testing and automation.
+
+CONFIRM_TX_TIMEOUT_SECONDS When set it will change the timeout used to confirm transactions. The timeout defaults to 60 seconds. Useful for testing and automation.
