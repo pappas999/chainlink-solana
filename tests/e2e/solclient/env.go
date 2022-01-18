@@ -45,3 +45,15 @@ func NewChainlinkSolOCRv2() *environment.Config {
 		},
 	}
 }
+
+// NewChainlinkSolOCRv2 returns a cluster config with Solana test validator
+func NewSolanaValidator() *environment.Config {
+	return &environment.Config{
+		NamespacePrefix: "chainlink-sol",
+		Charts: environment.Charts{
+			"solana-validator": {
+				Index: 1,
+			},
+		},
+	}
+}

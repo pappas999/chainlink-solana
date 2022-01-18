@@ -117,6 +117,19 @@ func (g Gauntlet) ReadCommandReport() (GReport, error) {
 	return report, nil
 }
 
+func (g Gauntlet) ExecuteAndRead(args []string, errHandling []ExecError) (GReport, error) {
+	_, err := g.ExecCommand(args, errHandling)
+	if err != nil {
+		return GReport{}, err
+	}
+
+	report, err := g.ReadCommandReport()
+	if err != nil {
+		return GReport{}, err
+	}
+	return report, nil
+}
+
 func (g Gauntlet) ReadCommandFlowReport() (FlowReport, error) {
 	jsonFile, err := os.Open("flow-report.json")
 	if err != nil {
