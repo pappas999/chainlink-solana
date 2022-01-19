@@ -1,6 +1,7 @@
 package smoke
 
 import (
+	"fmt"
 	"math/big"
 	"os"
 	"os/exec"
@@ -138,10 +139,10 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			report, err := gd.gauntlet.ExecuteAndRead(args, solanaCommandError)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			// linkAddress := report.Responses[0].Contract
-			// networkConfig["LINK"] = linkAddress
-			// err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
-			// Expect(err).ShouldNot(HaveOccurred())
+			linkAddress := report.Responses[0].Contract
+			networkConfig["LINK"] = linkAddress
+			err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
+			Expect(err).ShouldNot(HaveOccurred())
 
 			// // Create Billing and Requester Access Controllers
 			// log.Debug().Msg("Read the state of the token.")
