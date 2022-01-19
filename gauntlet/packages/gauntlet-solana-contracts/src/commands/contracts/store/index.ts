@@ -6,6 +6,7 @@ import SetLoweringAccessController from './setLoweringAccessController'
 import { makeAcceptOwnershipCommand } from '../ownership/acceptOwnership'
 import { makeTransferOwnershipCommand } from '../ownership/transferOwnership'
 import { CONTRACT_LIST } from '../../../lib/contracts'
+import { makeCloseCommand } from '../../abstract/close'
 
 export default [
   Initialize,
@@ -15,4 +16,5 @@ export default [
   SetLoweringAccessController,
   makeAcceptOwnershipCommand(CONTRACT_LIST.STORE),
   makeTransferOwnershipCommand(CONTRACT_LIST.STORE),
+  makeCloseCommand(CONTRACT_LIST.STORE),
 ]
