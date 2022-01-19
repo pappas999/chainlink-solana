@@ -32,12 +32,20 @@ type Deployer struct {
 
 var _ = Describe("Gauntlet Testing @gauntlet", func() {
 	var (
-		e        *environment.Environment
-		gd       Deployer
-		gauntlet g.Gauntlet
-		nkb      []NodeKeysBundle
-		nets     *client.Networks
-		err      error
+		e              *environment.Environment
+		gd             Deployer
+		gauntlet       g.Gauntlet
+		chainlinkNodes []client.Chainlink
+		// cd             contracts.ContractDeployer
+		// store          contracts.OCRv2Store
+		// billingAC      contracts.OCRv2AccessController
+		// requesterAC    contracts.OCRv2AccessController
+		// ocr2           contracts.OCRv2
+		// ocConfig       contracts.OffChainAggregatorV2Config
+		nkb []NodeKeysBundle
+		// mockserver     *client.MockserverClient
+		nets *client.Networks
+		err  error
 	)
 
 	solanaCommandError := []string{
@@ -47,7 +55,8 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 	BeforeEach(func() {
 		By("Deploying the environment", func() {
 			e, err = environment.DeployOrLoadEnvironment(
-				solclient.NewSolanaValidator(),
+				// solclient.NewSolanaValidator(),
+				solclient.NewChainlinkSolOCRv2(),
 				tools.ChartsRoot,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -65,6 +74,12 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			)
 			nets, err = networkRegistry.GetNetworks(e)
 			Expect(err).ShouldNot(HaveOccurred())
+			_, err = client.ConnectMockServer(e)
+			Expect(err).ShouldNot(HaveOccurred())
+			chainlinkNodes, err = client.ConnectChainlinkNodes(e)
+			Expect(err).ShouldNot(HaveOccurred())
+			_, nkb, err = DefaultOffChainConfigParamsFromNodes(chainlinkNodes)
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 		By("Setup Gauntlet", func() {
 			_, err := exec.LookPath("yarn")
@@ -73,7 +88,7 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			// skip all teh gauntlet prompts since trying to handle them gracefully would be very painful
 			os.Setenv("SKIP_PROMPTS", "true")
 			// make the gauntlet solana calls timeout longer for tests, it normally defaults to 60 seconds
-			os.Setenv("CONFIRM_TX_TIMEOUT_SECONDS", "120")
+			os.Setenv("CONFIRM_TX_TIMEOUT_SECONDS", "60")
 
 			log.Debug().Str("OS", runtime.GOOS).Msg("Runtime OS:")
 			version := "linux"
@@ -102,7 +117,7 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 
 			// TODO: create a proper waiter to do this
 			log.Debug().Msg("Sleeping to let the wallets fill")
-			time.Sleep(10 * time.Second)
+			time.Sleep(15 * time.Second)
 		})
 	})
 
@@ -123,21 +138,21 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			report, err := gd.gauntlet.ExecuteAndRead(args, solanaCommandError)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			linkAddress := report.Responses[0].Contract
-			networkConfig["LINK"] = linkAddress
+			// linkAddress := report.Responses[0].Contract
+			// networkConfig["LINK"] = linkAddress
 			// err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
 			// Expect(err).ShouldNot(HaveOccurred())
 
-			// Create Billing and Requester Access Controllers
-			log.Debug().Msg("Read the state of the token.")
-			acArgs := []string{
-				"token:read_state",
-				gd.gauntlet.Flag("network", network),
-				// linkAddress,
-			}
+			// // Create Billing and Requester Access Controllers
+			// log.Debug().Msg("Read the state of the token.")
+			// acArgs := []string{
+			// 	"token:read_state",
+			// 	gd.gauntlet.Flag("network", network),
+			// 	// linkAddress,
+			// }
 
-			report, err = gd.gauntlet.ExecuteAndRead(acArgs, solanaCommandError)
-			Expect(err).ShouldNot(HaveOccurred())
+			// report, err = gd.gauntlet.ExecuteAndRead(acArgs, solanaCommandError)
+			// Expect(err).ShouldNot(HaveOccurred())
 
 			// token:read_state
 

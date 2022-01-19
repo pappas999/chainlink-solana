@@ -269,8 +269,8 @@ func GetDefaultGauntletConfig(network string, env *environment.Environment) (map
 		"PROGRAM_ID_OCR2":              "CF13pnKGJ1WJZeEgVAtFdUi4MMndXm9hneiHs8azUaZt",
 		"PROGRAM_ID_ACCESS_CONTROLLER": "2F5NEkMnCRkmahEAcQfTQcZv1xtGgrWFfjENtTwHLuKg",
 		"PROGRAM_ID_STORE":             "A7Jh2nb1hZHwqEofm4N8SXbKTj82rx7KUfjParQXUyMQ",
-		// "PRIVATE_KEY":                  "[82,252,248,116,175,84,117,250,95,209,157,226,79,186,119,203,91,102,11,93,237,3,147,113,49,205,35,71,74,208,225,183,24,204,237,135,197,153,100,220,237,111,190,58,211,186,148,129,219,173,188,168,137,129,84,192,188,250,111,167,151,43,111,109]",
-		// "SECRET":                       "[only,unfair,fiction,favorite,sudden,strategy,rotate,announce,rebuild,keep,violin,nuclear]",
+		"PRIVATE_KEY":                  "[82,252,248,116,175,84,117,250,95,209,157,226,79,186,119,203,91,102,11,93,237,3,147,113,49,205,35,71,74,208,225,183,24,204,237,135,197,153,100,220,237,111,190,58,211,186,148,129,219,173,188,168,137,129,84,192,188,250,111,167,151,43,111,109]",
+		"SECRET":                       "[only,unfair,fiction,favorite,sudden,strategy,rotate,announce,rebuild,keep,violin,nuclear]",
 	}
 
 	err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)

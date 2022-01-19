@@ -17,11 +17,9 @@ export const withProvider: Middleware = (c: SolanaCommand, next: Next) => {
   )
 
   let connectionConfig: ConnectionConfig = {}
-  console.info("before")
   if (process.env.CONFIRM_TX_TIMEOUT_SECONDS) {
     connectionConfig.confirmTransactionInitialTimeout = parseInt(process.env.CONFIRM_TX_TIMEOUT_SECONDS) * 1000
   }
-  console.info("after")
   c.provider = new Provider(new Connection(nodeURL, connectionConfig), c.wallet, {})
   return next()
 }

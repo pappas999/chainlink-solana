@@ -66,11 +66,9 @@ func (g Gauntlet) ExecCommand(args []string, errHandling []string) (string, erro
 	stdin, _ := cmd.StdinPipe()
 	reader := bufio.NewReader(stdout)
 	line, err := reader.ReadString('\n')
-	log.Debug().Str("Output", err.Error()).Msg("Read Line")
-	log.Debug().Str("Error", err.Error()).Msg("Read error")
 	for err == nil {
 		fmt.Print(line)
-		log.Debug().Str("Line", line).Msg("Gauntlet")
+		// log.Debug().Str("Line", line).Msg("Gauntlet")
 		output += line + "\n"
 		line, err = reader.ReadString('\n')
 		rerr := respondToErrors(errHandling, line, stdin)
