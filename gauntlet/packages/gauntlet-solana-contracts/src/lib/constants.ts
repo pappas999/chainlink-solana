@@ -1,2 +1,3 @@
 export const MAX_TRANSACTION_BYTES = 996
 export const ORACLES_MAX_LENGTH = 19
+export const ADDITIONAL_STATE_BUFFER = 1024

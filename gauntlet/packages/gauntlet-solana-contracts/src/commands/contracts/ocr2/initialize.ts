@@ -6,6 +6,7 @@ import { CONTRACT_LIST, getContract } from '../../../lib/contracts'
 import { utils } from '@project-serum/anchor'
 import { logger, BN, prompt } from '@chainlink/gauntlet-core/dist/utils'
 import { getRDD } from '../../../lib/rdd'
+import { ADDITIONAL_STATE_BUFFER } from '../../../lib/constants'
 
 type Input = {
   minAnswer: number | string
@@ -46,6 +47,9 @@ export default class Initialize extends SolanaCommand {
 
     // STATE ACCOUNTS
     const state = Keypair.generate()
+    const defaultAccountSize = new BN(program.account.state.size)
+    const accountSize = defaultAccountSize.add(new BN(ADDITIONAL_STATE_BUFFER)).toNumber()
+
     const owner = this.wallet.payer
     const input = this.makeInput(this.flags.input)
 
@@ -105,7 +109,7 @@ export default class Initialize extends SolanaCommand {
     const txHash = await program.rpc.initialize(vaultNonce, minAnswer, maxAnswer, {
       accounts,
       signers: [owner, state],
-      instructions: [await program.account.state.createInstruction(state)],
+      instructions: [await program.account.state.createInstruction(state, accountSize)],
     })
 
     console.log(`
