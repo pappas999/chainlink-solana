@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
@@ -22,12 +21,13 @@ import (
 	// utils2 "github.com/smartcontractkit/chainlink-solana/tests/e2e/utils"
 
 	// relayUtils "github.com/smartcontractkit/chainlink-relay/ops/utils"
+	"github.com/smartcontractkit/chainlink-solana/tests/e2e/common"
 	"github.com/smartcontractkit/chainlink-solana/tests/e2e/solclient"
+	"github.com/smartcontractkit/chainlink-solana/tests/e2e/utils"
 	g "github.com/smartcontractkit/chainlink-solana/tests/e2e/utils"
 	"github.com/smartcontractkit/helmenv/environment"
 	"github.com/smartcontractkit/helmenv/tools"
 	"github.com/smartcontractkit/integrations-framework/actions"
-	"github.com/smartcontractkit/integrations-framework/client"
 	"github.com/smartcontractkit/integrations-framework/contracts"
 )
 
@@ -41,21 +41,22 @@ const RETRY_COUNT = 3
 
 var _ = Describe("Gauntlet Testing @gauntlet", func() {
 	var (
-		e              *environment.Environment
-		gd             Deployer
-		gauntlet       g.Gauntlet
-		chainlinkNodes []client.Chainlink
-		cd             contracts.ContractDeployer
+		// e              *environment.Environment
+		gd       Deployer
+		gauntlet g.Gauntlet
+		// chainlinkNodes []client.Chainlink
+		cd contracts.ContractDeployer
 		// store          contracts.OCRv2Store
 		// billingAC      contracts.OCRv2AccessController
 		// requesterAC    contracts.OCRv2AccessController
 		// ocr2           contracts.OCRv2
 		// ocConfig       contracts.OffChainAggregatorV2Config
-		nkb []NodeKeysBundle
+		// nkb []NodeKeysBundle
 		// mockserver     *client.MockserverClient
-		nets *client.Networks
-		err  error
+		// nets *client.Networks
+		err error
 	)
+	var state = &common.OCRv2TestState{}
 
 	solanaCommandError := []string{
 		"Solana Command execution error",
@@ -63,32 +64,33 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 
 	BeforeEach(func() {
 		By("Deploying the environment", func() {
-			e, err = environment.DeployOrLoadEnvironment(
-				solclient.NewChainlinkSolOCRv2(1),
+			state.Env, err = environment.DeployOrLoadEnvironment(
+				solclient.NewChainlinkSolOCRv2(1, false),
 				tools.ChartsRoot,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
-			err = e.ConnectAll()
+			err = state.Env.ConnectAll()
 			Expect(err).ShouldNot(HaveOccurred())
-			err = UploadProgramBinaries(e)
-			Expect(err).ShouldNot(HaveOccurred())
+			state.UploadProgramBinaries()
 		})
 		By("Getting the clients", func() {
-			networkRegistry := client.NewNetworkRegistry()
-			networkRegistry.RegisterNetwork(
-				"solana",
-				solclient.ClientInitFunc(),
-				solclient.ClientURLSFunc(),
-			)
-			nets, err = networkRegistry.GetNetworks(e)
+			// networkRegistry := client.NewNetworkRegistry()
+			// networkRegistry.RegisterNetwork(
+			// 	"solana",
+			// 	solclient.ClientInitFunc(),
+			// 	solclient.ClientURLSFunc(),
+			// )
+			// state.Networks, err = networkRegistry.GetNetworks(state.Env)
+			// Expect(err).ShouldNot(HaveOccurred())
+			// state.MockServer, err = client.ConnectMockServer(state.Env)
+			// Expect(err).ShouldNot(HaveOccurred())
+			// state.ChainlinkNodes, err = client.ConnectChainlinkNodes(state.Env)
+			// Expect(err).ShouldNot(HaveOccurred())
+
+			state.SetupClients()
+			state.OffChainConfig, state.NodeKeysBundle, err = common.DefaultOffChainConfigParamsFromNodes(state.ChainlinkNodes)
 			Expect(err).ShouldNot(HaveOccurred())
-			_, err = client.ConnectMockServer(e)
-			Expect(err).ShouldNot(HaveOccurred())
-			chainlinkNodes, err = client.ConnectChainlinkNodes(e)
-			Expect(err).ShouldNot(HaveOccurred())
-			_, nkb, err = DefaultOffChainConfigParamsFromNodes(chainlinkNodes)
-			Expect(err).ShouldNot(HaveOccurred())
-			cd, err = solclient.NewContractDeployer(nets.Default, e)
+			cd, err = solclient.NewContractDeployer(state.Networks.Default, state.Env)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		By("Setup Gauntlet", func() {
@@ -123,9 +125,9 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			}
 		})
 		By("Fund Wallets", func() {
-			err = FundOracles(nets.Default, nkb, big.NewFloat(5e4))
+			err = common.FundOracles(state.Networks.Default, state.NodeKeysBundle, big.NewFloat(5e4))
 			Expect(err).ShouldNot(HaveOccurred())
-			err = nets.Default.(*solclient.Client).WaitForEvents()
+			err = state.Networks.Default.(*solclient.Client).WaitForEvents()
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// TODO: create a proper waiter to do this
@@ -138,7 +140,7 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 
 		XIt("token", func() {
 			network := "blarg"
-			networkConfig, err := GetDefaultGauntletConfig(network, e)
+			networkConfig, err := utils.GetDefaultGauntletConfig(network, state.Env)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Deploy Link
@@ -159,8 +161,8 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 				fmt.Println(matches[1])
 				sig, err := solana.SignatureFromBase58(matches[1])
 				Expect(err).ShouldNot(HaveOccurred())
-				nets.Default.(*solclient.Client).QueueTX(sig, rpc.CommitmentFinalized)
-				err = nets.Default.(*solclient.Client).WaitForEvents()
+				state.Networks.Default.(*solclient.Client).QueueTX(sig, rpc.CommitmentFinalized)
+				err = state.Networks.Default.(*solclient.Client).WaitForEvents()
 				Expect(err).ShouldNot(HaveOccurred())
 			}
 			// lt, err := cd.DeployLinkTokenContract()
@@ -168,7 +170,7 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			// linkAddress := lt.Address()
 			linkAddress := report.Responses[0].Contract
 			networkConfig["LINK"] = linkAddress
-			err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
+			err = utils.WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Read the token state
@@ -185,18 +187,18 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 
 		XIt("token2", func() {
 			network := "blarg"
-			networkConfig, err := GetDefaultGauntletConfig(network, e)
+			networkConfig, err := utils.GetDefaultGauntletConfig(network, state.Env)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Deploy Link
 			log.Debug().Msg("Deploying LINK Token...")
 			lt, err := cd.DeployLinkTokenContract()
 			Expect(err).ShouldNot(HaveOccurred(), "Deploying token failed")
-			err = nets.Default.(*solclient.Client).WaitForEvents()
+			err = state.Networks.Default.(*solclient.Client).WaitForEvents()
 			Expect(err).ShouldNot(HaveOccurred())
 			linkAddress := lt.Address()
 			networkConfig["LINK"] = linkAddress
-			err = WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
+			err = utils.WriteNetworkConfigMap(fmt.Sprintf("networks/.env.%s", network), networkConfig)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Read the token state
@@ -330,14 +332,14 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 		// })
 		It("deploy ocr2", func() {
 			network := "deployocr"
-			networkConfig, err := GetDefaultGauntletConfig(network, e)
+			networkConfig, err := utils.GetDefaultGauntletConfig(network, state.Env)
 			Expect(err).ShouldNot(HaveOccurred(), "Writing the gauntlet config failed")
 
 			// Deploy Link
 			log.Debug().Msg("Deploying LINK Token...")
 			lt, err := cd.DeployLinkTokenContract()
 			Expect(err).ShouldNot(HaveOccurred(), "Deploying token failed")
-			err = nets.Default.(*solclient.Client).WaitForEvents()
+			err = state.Networks.Default.(*solclient.Client).WaitForEvents()
 			Expect(err).ShouldNot(HaveOccurred())
 			linkAddress := lt.Address()
 			networkConfig["LINK"] = linkAddress
@@ -437,7 +439,7 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			Expect(err).ShouldNot(HaveOccurred(), "Marshalling the ocr2 input failed")
 
 			// TODO: command doesn't throw an error in go if it fails
-			time.Sleep(30 * time.Second) // give time for everything else to complete
+			// time.Sleep(30 * time.Second) // give time for everything else to complete
 			report, _, err = gd.gauntlet.ExecuteAndRead(
 				[]string{"ocr2:initialize",
 					gd.gauntlet.Flag("network", network),
@@ -461,7 +463,7 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 
 	AfterEach(func() {
 		By("Tearing down the environment", func() {
-			err = actions.TeardownSuite(e, nil, "logs")
+			err = actions.TeardownSuite(state.Env, nil, "logs")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
