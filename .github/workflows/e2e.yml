@@ -5,7 +5,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: projectserum/build:v0.20.0
+      image: projectserum/build:v0.20.1
       env:
         RUSTUP_HOME: "/root/.rustup"
         FORCE_COLOR: 1
@@ -63,9 +63,9 @@ jobs:
         run: go mod download
       - name: Install Ginkgo CLI
         run: |
-          go get github.com/onsi/ginkgo/v2/ginkgo/generators@v2.0.0-rc2
-          go get github.com/onsi/ginkgo/v2/ginkgo/internal@v2.0.0-rc2
-          go get github.com/onsi/ginkgo/v2/ginkgo/labels@v2.0.0-rc2
+          go get github.com/onsi/ginkgo/v2/ginkgo/generators@v2.0.0
+          go get github.com/onsi/ginkgo/v2/ginkgo/internal@v2.0.0
+          go get github.com/onsi/ginkgo/v2/ginkgo/labels@v2.0.0
           go install github.com/onsi/ginkgo/v2/ginkgo
       - uses: actions/download-artifact@master
         with:
