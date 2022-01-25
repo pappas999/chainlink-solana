@@ -3,6 +3,13 @@ package solclient
 import (
 	"context"
 	"fmt"
+	"io/fs"
+	"math/big"
+	"net/url"
+	"os"
+	"path/filepath"
+	"time"
+
 	"github.com/gagliardetto/solana-go"
 	associatedtokenaccount "github.com/gagliardetto/solana-go/programs/associated-token-account"
 	"github.com/gagliardetto/solana-go/programs/system"
@@ -15,12 +22,6 @@ import (
 	"github.com/smartcontractkit/integrations-framework/client"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
-	"io/fs"
-	"math/big"
-	"net/url"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 type NetworkConfig struct {
@@ -266,7 +267,7 @@ func (c *Client) TXSync(name string, commitment rpc.CommitmentType, instr []sola
 	return nil
 }
 
-func (c *Client) queueTX(sig solana.Signature, commitment rpc.CommitmentType) {
+func (c *Client) QueueTX(sig solana.Signature, commitment rpc.CommitmentType) {
 	c.txErrGroup.Go(func() error {
 		sub, err := c.WS.SignatureSubscribe(
 			sig,
@@ -281,6 +282,7 @@ func (c *Client) queueTX(sig solana.Signature, commitment rpc.CommitmentType) {
 			if err != nil {
 				return err
 			}
+			log.Info().Interface("Res", res).Msg("Result")
 			if res.Value.Err != nil {
 				return fmt.Errorf("transaction confirmation failed: %v", res.Value.Err)
 			} else {
@@ -314,7 +316,7 @@ func (c *Client) TXAsync(name string, instr []solana.Instruction, signerFunc fun
 	if err != nil {
 		return err
 	}
-	c.queueTX(sig, rpc.CommitmentFinalized)
+	c.QueueTX(sig, rpc.CommitmentFinalized)
 	log.Info().Interface("Sig", sig).Msg("TX send")
 	return nil
 }
@@ -347,7 +349,7 @@ func (c *Client) Airdrop(wpk solana.PublicKey, solAmount uint64) error {
 		Str("PublicKey", wpk.String()).
 		Str("TX", txHash.String()).
 		Msg("Airdropping account")
-	c.queueTX(txHash, rpc.CommitmentProcessed)
+	c.QueueTX(txHash, rpc.CommitmentProcessed)
 	return nil
 }
 
@@ -474,7 +476,7 @@ func (c *Client) Fund(toAddress string, amount *big.Float) error {
 		Str("PublicKey", pubKey.String()).
 		Str("TX", txHash.String()).
 		Msg("Airdropping account")
-	c.queueTX(txHash, rpc.CommitmentFinalized)
+	c.QueueTX(txHash, rpc.CommitmentFinalized)
 	return nil
 }
 

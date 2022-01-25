@@ -5,12 +5,30 @@ import (
 )
 
 // NewChainlinkSolOCRv2 returns a cluster config with Solana test validator
-func NewChainlinkSolOCRv2() *environment.Config {
+func NewChainlinkSolOCRv2(chainlinkNodeCount int) *environment.Config {
 	return &environment.Config{
 		NamespacePrefix: "chainlink-sol",
 		Charts: environment.Charts{
 			"solana-validator": {
 				Index: 1,
+				Values: map[string]interface{}{
+					"sol": map[string]interface{}{
+						"image": map[string]interface{}{
+							"image":   "tateexon/solana-validator",
+							"version": "1.9.5-1",
+						},
+					},
+					"resources": map[string]interface{}{
+						"requests": map[string]interface{}{
+							"cpu":    "2000m",
+							"memory": "2000Mi",
+						},
+						"limits": map[string]interface{}{
+							"cpu":    "2500m",
+							"memory": "2000Mi",
+						},
+					},
+				},
 			},
 			"mockserver-config": {
 				Index: 2,
@@ -21,7 +39,7 @@ func NewChainlinkSolOCRv2() *environment.Config {
 			"chainlink": {
 				Index: 4,
 				Values: map[string]interface{}{
-					"replicas": 5,
+					"replicas": chainlinkNodeCount,
 					"chainlink": map[string]interface{}{
 						"image": map[string]interface{}{
 							"image":   "public.ecr.aws/chainlink/chainlink",

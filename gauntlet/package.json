@@ -28,7 +28,7 @@
   },
   "pkg": {
     "scripts": [
-      "packages/gauntlet-solana-contracts/dist/index.js"
+      "packages/gauntlet-solana-contracts/dist/cli.js"
     ],
     "targets": [
       "linux",

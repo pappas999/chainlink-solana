@@ -33,7 +33,7 @@ var _ = Describe("Solana OCRv2 @ocr", func() {
 	BeforeEach(func() {
 		By("Deploying the environment", func() {
 			e, err = environment.DeployOrLoadEnvironment(
-				solclient.NewChainlinkSolOCRv2(),
+				solclient.NewChainlinkSolOCRv2(5),
 				tools.ChartsRoot,
 			)
 			Expect(err).ShouldNot(HaveOccurred())

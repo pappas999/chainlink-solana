@@ -41,7 +41,6 @@ type GReport struct {
 }
 
 func NewGauntlet(binPath string) (Gauntlet, error) {
-	fmt.Println(binPath)
 	log.Debug().Str("PATH", binPath).Msg("BinPath")
 	_, err := exec.Command(binPath).Output()
 	if err != nil {
@@ -58,6 +57,7 @@ func (g Gauntlet) Flag(flag string, value string) string {
 
 func (g Gauntlet) ExecCommand(args []string, errHandling []string) (string, error) {
 	output := ""
+	printArgs(args)
 	cmd := exec.Command(g.exec, args...)
 	stdout, _ := cmd.StdoutPipe()
 	if err := cmd.Start(); err != nil {
@@ -67,8 +67,7 @@ func (g Gauntlet) ExecCommand(args []string, errHandling []string) (string, erro
 	reader := bufio.NewReader(stdout)
 	line, err := reader.ReadString('\n')
 	for err == nil {
-		fmt.Print(line)
-		// log.Debug().Str("Line", line).Msg("Gauntlet")
+		log.Info().Str("stdout", line).Msg("Gauntlet")
 		output += line + "\n"
 		line, err = reader.ReadString('\n')
 		rerr := respondToErrors(errHandling, line, stdin)
@@ -87,14 +86,19 @@ func respondToErrors(errHandling []string, line string, stdin io.WriteCloser) er
 	for _, e := range errHandling {
 		if strings.Contains(line, e) {
 			log.Debug().Str("Error", line).Msg("Gauntlet Error Found")
-			// _, err := stdin.Write([]byte(fmt.Sprintln(e.HowToRespond)))
-			// if err != nil {
-			// 	return err
-			// }
 			return fmt.Errorf("found a gauntlet error")
 		}
 	}
 	return nil
+}
+
+func printArgs(args []string) {
+	out := "gauntlet"
+	for _, arg := range args {
+		out = fmt.Sprintf("%s %s", out, arg)
+
+	}
+	log.Info().Str("Command", fmt.Sprintf("%s\n", out)).Msg("Gauntlet")
 }
 
 func (g Gauntlet) ReadCommandReport() (GReport, error) {
@@ -110,17 +114,28 @@ func (g Gauntlet) ReadCommandReport() (GReport, error) {
 	return report, nil
 }
 
-func (g Gauntlet) ExecuteAndRead(args []string, errHandling []string) (GReport, error) {
-	_, err := g.ExecCommand(args, errHandling)
-	if err != nil {
-		return GReport{}, err
-	}
+func (g Gauntlet) ExecuteAndRead(args []string, errHandling []string, retryCount int) (GReport, string, error) {
+	var output string
+	var report GReport
+	var err error
+	for i := 0; i < retryCount; i++ {
+		log.Info().Msg(fmt.Sprintf("Gauntlet Command Attempt: %v", i+1))
+		output, err = g.ExecCommand(args, errHandling)
+		if err != nil {
+			continue
+			// return GReport{}, output, err
+		}
 
-	report, err := g.ReadCommandReport()
-	if err != nil {
-		return GReport{}, err
+		report, err = g.ReadCommandReport()
+		if err != nil {
+			continue
+			// return GReport{}, output, err
+		}
 	}
-	return report, nil
+	if err != nil {
+		log.Error().Msg(fmt.Sprintf("Failed to exucute Gauntlet command after %v attempts", retryCount))
+	}
+	return report, output, err
 }
 
 func (g Gauntlet) ReadCommandFlowReport() (FlowReport, error) {
