@@ -36,3 +36,4 @@ gauntlet/logs/logs
 gauntlet/networks/.env.*
 gauntlet/yarn-error.log
 tests/e2e/smoke/logs/logs
+tests/e2e/logs
