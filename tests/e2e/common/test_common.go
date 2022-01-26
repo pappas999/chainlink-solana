@@ -323,14 +323,14 @@ func (m *OCRv2TestState) ValidateRoundsAfter(chaosStartTime time.Time, rounds in
 	}, NewRoundCheckTimeout, NewRoundCheckPollInterval).Should(Succeed())
 }
 
-func (m *OCRv2TestState) ValidateFailedGauntletCommand(output string, report utils.GReport, err error) string {
+func (m *OCRv2TestState) ValidateFailedGauntletCommand(output string, report utils.GReport, err error, txIndex int) string {
 	if err != nil {
 		log.Warn().Msg("Gauntlet was unable to verify the transaction completed, checking outside of gauntlet now")
 
 		sig, errr := utils.GetSignatureFromErrorMessage(output)
 		Expect(errr).ShouldNot(HaveOccurred(), "Could not find the signature in the output")
 
-		address, errr := m.Networks.Default.(*solclient.Client).GetAddressFromSignature(sig)
+		address, errr := m.Networks.Default.(*solclient.Client).GetAddressFromSignature(sig, txIndex)
 		Expect(errr).ShouldNot(HaveOccurred(), "Could not find the address in the block related to the signature")
 
 		log.Warn().Str("Address", address).Msg("Was able to verify the tx completed, outside of gauntlet")

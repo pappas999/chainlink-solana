@@ -515,7 +515,7 @@ func (c *Client) WaitForEvents() error {
 	return c.txErrGroup.Wait()
 }
 
-func (c *Client) GetAddressFromSignature(signature string) (string, error) {
+func (c *Client) GetAddressFromSignature(signature string, txIndex int) (string, error) {
 	sig, err := solana.SignatureFromBase58(signature)
 	if err != nil {
 		return "", err
@@ -546,12 +546,12 @@ func (c *Client) GetAddressFromSignature(signature string) (string, error) {
 	}
 
 	log.Info().Interface("BlockRes", blockRes).Msg("GetBlock Result")
-	if len(blockRes.Transactions) < 1 {
+	if len(blockRes.Transactions) < txIndex+1 {
 		return "", errors.New("not enough transactions in block to get the address")
 	}
-	if len(blockRes.Transactions[0].Transaction.Message.AccountKeys) < 2 {
+	if len(blockRes.Transactions[txIndex].Transaction.Message.AccountKeys) < 2 {
 		return "", errors.New("not enough account keys in transaction message to get the address")
 	}
 
-	return string(blockRes.Transactions[0].Transaction.Message.AccountKeys[1].String()), nil
+	return string(blockRes.Transactions[txIndex].Transaction.Message.AccountKeys[1].String()), nil
 }

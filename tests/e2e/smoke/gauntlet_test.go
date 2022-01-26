@@ -14,10 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/rs/zerolog/log"
 
-	// "github.com/gagliardetto/solana-go"
-	// utils2 "github.com/smartcontractkit/chainlink-solana/tests/e2e/utils"
-
-	// relayUtils "github.com/smartcontractkit/chainlink-relay/ops/utils"
 	"github.com/smartcontractkit/chainlink-solana/tests/e2e/common"
 	"github.com/smartcontractkit/chainlink-solana/tests/e2e/solclient"
 	"github.com/smartcontractkit/chainlink-solana/tests/e2e/utils"
@@ -34,7 +30,7 @@ type Deployer struct {
 }
 
 const RETRY_COUNT = 1
-const CONFIRM_TX_TIMEOUT_SECONDS = "30"
+const CONFIRM_TX_TIMEOUT_SECONDS = "10"
 
 var _ = Describe("Gauntlet Testing @gauntlet", func() {
 	var (
@@ -71,19 +67,6 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			state.UploadProgramBinaries()
 		})
 		By("Getting the clients", func() {
-			// networkRegistry := client.NewNetworkRegistry()
-			// networkRegistry.RegisterNetwork(
-			// 	"solana",
-			// 	solclient.ClientInitFunc(),
-			// 	solclient.ClientURLSFunc(),
-			// )
-			// state.Networks, err = networkRegistry.GetNetworks(state.Env)
-			// Expect(err).ShouldNot(HaveOccurred())
-			// state.MockServer, err = client.ConnectMockServer(state.Env)
-			// Expect(err).ShouldNot(HaveOccurred())
-			// state.ChainlinkNodes, err = client.ConnectChainlinkNodes(state.Env)
-			// Expect(err).ShouldNot(HaveOccurred())
-
 			state.SetupClients()
 			state.OffChainConfig, state.NodeKeysBundle, err = common.DefaultOffChainConfigParamsFromNodes(state.ChainlinkNodes)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -94,7 +77,7 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			_, err := exec.LookPath("yarn")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			// skip all teh gauntlet prompts since trying to handle them gracefully would be very painful
+			// skip all the gauntlet prompts since trying to handle them gracefully would be very painful
 			os.Setenv("SKIP_PROMPTS", "true")
 			// make the gauntlet solana calls timeout longer for tests, it normally defaults to 60 seconds
 			os.Setenv("CONFIRM_TX_TIMEOUT_SECONDS", CONFIRM_TX_TIMEOUT_SECONDS)
@@ -144,7 +127,7 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 			}
 
 			report, output, err := gd.gauntlet.ExecuteAndRead(args, solanaCommandError, RETRY_COUNT)
-			linkAddress := state.ValidateFailedGauntletCommand(output, report, err)
+			linkAddress := state.ValidateFailedGauntletCommand(output, report, err, 1)
 			// log.Info().Str("Out", output).Msg("Gauntlet Output")
 			// Expect(err).ShouldNot(HaveOccurred())
 			// if err != nil {
@@ -331,21 +314,12 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 
 			// Deploy Link
 			log.Debug().Msg("Deploying LINK Token...")
-			// lt, err := cd.DeployLinkTokenContract()
-			// Expect(err).ShouldNot(HaveOccurred(), "Deploying token failed")
-			// err = state.Networks.Default.(*solclient.Client).WaitForEvents()
-			// Expect(err).ShouldNot(HaveOccurred())
+			lt, err := cd.DeployLinkTokenContract()
+			Expect(err).ShouldNot(HaveOccurred(), "Deploying token failed")
+			err = state.Networks.Default.(*solclient.Client).WaitForEvents()
+			Expect(err).ShouldNot(HaveOccurred())
 
-			log.Debug().Msg("Deploying LINK Token...")
-			args := []string{
-				"token:deploy",
-				gd.gauntlet.Flag("network", network),
-			}
-
-			report, output, err := gd.gauntlet.ExecuteAndRead(args, solanaCommandError, RETRY_COUNT)
-			linkAddress := state.ValidateFailedGauntletCommand(output, report, err)
-
-			// linkAddress := lt.Address()
+			linkAddress := lt.Address()
 			log.Info().Msg(fmt.Sprintf("LINK Address is: %v", linkAddress))
 			networkConfig["LINK"] = linkAddress
 			// ocr2:initialize
@@ -370,12 +344,12 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 				"access_controller:initialize",
 				gd.gauntlet.Flag("network", network),
 			}
-			report, output, err = gd.gauntlet.ExecuteAndRead(
+			report, output, err := gd.gauntlet.ExecuteAndRead(
 				accessControllerArgs,
 				solanaCommandError,
 				RETRY_COUNT,
 			)
-			requesterAccessController := state.ValidateFailedGauntletCommand(output, report, err)
+			requesterAccessController := state.ValidateFailedGauntletCommand(output, report, err, 0)
 
 			log.Info().Msg("Init Billing Access Controller")
 			report, _, err = gd.gauntlet.ExecuteAndRead(
@@ -383,7 +357,7 @@ var _ = Describe("Gauntlet Testing @gauntlet", func() {
 				solanaCommandError,
 				RETRY_COUNT,
 			)
-			billingAccessController := state.ValidateFailedGauntletCommand(output, report, err)
+			billingAccessController := state.ValidateFailedGauntletCommand(output, report, err, 0)
 
 			log.Info().Msg("Init Store")
 			report, _, err = gd.gauntlet.ExecuteAndRead(
