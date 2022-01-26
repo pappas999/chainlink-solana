@@ -29,16 +29,16 @@ func NewChainlinkSolOCRv2(nodes int, stateful bool) *environment.Config {
 							"version": "1.9.5-1",
 						},
 					},
-					"resources": map[string]interface{}{
-						"requests": map[string]interface{}{
-							"cpu":    "2000m",
-							"memory": "2000Mi",
-						},
-						"limits": map[string]interface{}{
-							"cpu":    "2500m",
-							"memory": "2000Mi",
-						},
-					},
+					// 	"resources": map[string]interface{}{
+					// 		"requests": map[string]interface{}{
+					// 			"cpu":    "2000m",
+					// 			"memory": "2000Mi",
+					// 		},
+					// 		"limits": map[string]interface{}{
+					// 			"cpu":    "2500m",
+					// 			"memory": "2000Mi",
+					// 		},
+					// 	},
 				},
 			},
 			"mockserver-config": {

@@ -2,6 +2,7 @@ package solclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"math/big"
@@ -512,4 +513,45 @@ func (c *Client) DeleteHeaderEventSubscription(key string) {
 
 func (c *Client) WaitForEvents() error {
 	return c.txErrGroup.Wait()
+}
+
+func (c *Client) GetAddressFromSignature(signature string) (string, error) {
+	sig, err := solana.SignatureFromBase58(signature)
+	if err != nil {
+		return "", err
+	}
+
+	c.QueueTX(sig, rpc.CommitmentFinalized)
+	err = c.WaitForEvents()
+	if err != nil {
+		return "", err
+	}
+
+	sigStat, err := c.RPC.GetSignatureStatuses(
+		context.TODO(),
+		true,
+		sig,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	log.Debug().Interface("Status", sigStat).Msg("Signature Statuses")
+	blockRes, err := c.RPC.GetBlock(
+		context.TODO(),
+		sigStat.Value[0].Slot,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	log.Info().Interface("BlockRes", blockRes).Msg("GetBlock Result")
+	if len(blockRes.Transactions) < 1 {
+		return "", errors.New("not enough transactions in block to get the address")
+	}
+	if len(blockRes.Transactions[0].Transaction.Message.AccountKeys) < 2 {
+		return "", errors.New("not enough account keys in transaction message to get the address")
+	}
+
+	return string(blockRes.Transactions[0].Transaction.Message.AccountKeys[1].String()), nil
 }

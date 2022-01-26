@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -116,22 +117,25 @@ func (g Gauntlet) ReadCommandReport() (GReport, error) {
 }
 
 func (g Gauntlet) ExecuteAndRead(args []string, errHandling []string, retryCount int) (GReport, string, error) {
-	var output string
-	var report GReport
-	var err error
+	var output string = ""
+	var report GReport = GReport{}
+	var err error = nil
 	for i := 0; i < retryCount; i++ {
-		log.Info().Msg(fmt.Sprintf("Gauntlet Command Attempt: %v", i+1))
+		log.Debug().Msg(fmt.Sprintf("Gauntlet Command Attempt: %v", i+1))
 		output, err = g.ExecCommand(args, errHandling)
 		if err != nil {
+			log.Warn().Str("Gauntlet Error", err.Error()).Msg("Failed Gauntlet Command Attempt")
 			continue
-			// return GReport{}, output, err
 		}
 
 		report, err = g.ReadCommandReport()
 		if err != nil {
+			log.Warn().Str("Gauntlet Error", err.Error()).Msg("Failed Gauntlet Command Attempt")
 			continue
-			// return GReport{}, output, err
 		}
+		// if we make it to here break out of the loop
+		log.Debug().Msg("Gauntlet Command Successful!")
+		break
 	}
 	if err != nil {
 		log.Error().Msg(fmt.Sprintf("Failed to exucute Gauntlet command after %v attempts", retryCount))
@@ -199,4 +203,15 @@ func GetDefaultGauntletConfig(network string, env *environment.Environment) (map
 	}
 
 	return networkConfig, nil
+}
+
+// GetSignatureFromErrorMessage Parses the output from a gauntlet command to get the signature from the failure
+func GetSignatureFromErrorMessage(errorMessage string) (string, error) {
+	r, _ := regexp.Compile("Check signature ([a-zA-Z0-9]+) using the Solana Explorer")
+	matches := r.FindStringSubmatch(errorMessage)
+	if len(matches) != 2 {
+		return "", errors.New("the signature was not in the output")
+	}
+	log.Info().Str("Signature", matches[1]).Msg("Found the signature in the error message")
+	return matches[1], nil
 }
