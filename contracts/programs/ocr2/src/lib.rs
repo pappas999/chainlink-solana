@@ -25,7 +25,7 @@ use std::convert::TryInto;
 use std::mem::size_of;
 
 use access_controller::AccessController;
-use store::Transmission;
+use store::NewTransmission;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct NewOracle {
@@ -708,8 +708,6 @@ fn transmit_impl<'info>(ctx: Context<Transmit<'info>>, data: &[u8]) -> ProgramRe
         .ok_or(ErrorCode::Overflow)?; // this should never occur, but let's check for it anyway
     state.config.latest_transmitter = ctx.accounts.transmitter.key();
 
-    let clock = Clock::get()?;
-
     // calculate and pay reimbursement
     let reimbursement = calculate_reimbursement(report.juels_per_lamport, signature_count)?;
     let amount = reimbursement + u64::from(state.config.billing.transmission_payment_gjuels);
@@ -727,11 +725,9 @@ fn transmit_impl<'info>(ctx: Context<Transmit<'info>>, data: &[u8]) -> ProgramRe
         reimbursement,
     });
 
-    let round = Transmission {
-        slot: clock.slot,
+    let round = NewTransmission {
         answer: report.median,
         timestamp: report.observations_timestamp,
-        ..Default::default()
     };
 
     // store and validate answer
